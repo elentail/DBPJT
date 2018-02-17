@@ -1,0 +1,4 @@
+1 _print_building  print all bulidings
+2 _print_performance print all performances
+3 _print_audience print all audience
+4 _insert_building insert buildings
