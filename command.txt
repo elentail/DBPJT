@@ -2,3 +2,5 @@
 2 _print_performance print all performances
 3 _print_audience print all audience
 4 _insert_building insert buildings
+6 _insert_performance insert a new performance
+8 _insert_audience insert a new audience

@@ -34,10 +34,8 @@ db_info = {
 class DBWrapper(object):
 
     # class variable
-
     # command description = { command idx:command description}
     cmd_desc = {}
-
     # command functor = { command idx:command functor}
     cmd_mapper = {}
 
@@ -62,9 +60,9 @@ class DBWrapper(object):
                 # precision exception about integer type
                 # row_format = '{:^20.10}'*len(result)
                 row_format = '{:^20}'*len(cursor.description)
-                print('='*70)
+                print('='*80)
                 print( row_format.format( *[i[0] for i in cursor.description] ))
-                print('='*70)
+                print('='*80)
                 for row in result:
                     print( row_format.format(*row.values()) )
 
@@ -77,21 +75,34 @@ class DBWrapper(object):
             with self.con.cursor() as cursor:
                 cursor.callproc(proc,args)
                 rst = cursor.fetchone()
-                if rst['valid']<0:
+                #print(rst)
+                if rst['valid']<1:
                     raise Exception('Insert valid error')
-            print('success insert ')
+            print('A {} is successfully inserted'.format(table))
             self.con.commit()
 
         except Exception as e:
             
             self.con.rollback()
-            print(e,sys.exc_info()[-1].tb_lineno)
+            print('[error-line :{}], context : {}'.format(sys.exc_info()[-1].tb_lineno,e))
 
     def _insert_building(self):
-        c1 = input("first filed: ")
-        c2 = input("second filed: ")
-        c3 = int(input("third field: "))
+        c1 = input("Building name: ")
+        c2 = input("Building location: ")
+        c3 = int(input("Building capacity: "))
         self._insert_common('Building',c1,c2,c3)
+        
+    def _insert_performance(self):
+        c1 = input("Performance name: ")
+        c2 = input("Performance type: ")
+        c3 = int(input("Performance price: "))
+        self._insert_common('Performance',c1,c2,c3)
+
+    def _insert_audience(self):
+        c1 = input("Audience name: ")
+        c2 = input("Audience gender: ")
+        c3 = int(input("Audience age: "))
+        self._insert_common('Audience',c1,c2,c3)
 
     def _print_building(self):
         self._print_common('Building')
