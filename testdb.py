@@ -33,14 +33,19 @@ db_info = {
 
 class DBWrapper(object):
 
-    # class variable
+    # ---- class variable ----
+
     # command description = { command idx:command description}
     cmd_desc = {}
+
     # command functor = { command idx:command functor}
     cmd_mapper = {}
+
+    # exit key flag(15)
     exit_flag = False
 
-    # ABSTRACT FUNCTION #
+
+    # encapsulate common function(select query) #
     def _print_common(self,table,*args):
         """
         - args : [table:str] = target table name
@@ -61,7 +66,6 @@ class DBWrapper(object):
                 cursor.callproc(proc,args)
                 result = cursor.fetchall()
 
-
                 row_format = '{:^20}'*len(cursor.description)
                 print('='*90)
                 print( row_format.format( *[i[0] for i in cursor.description] ))
@@ -72,6 +76,8 @@ class DBWrapper(object):
         except Exception as e:
             print('[error-line :{}], context : {}'.format(sys.exc_info()[-1].tb_lineno,e))
 
+
+    # encapsulate common function(insert query) #
     def _insert_common(self,table,*args):
         try:
             proc='INSERT_'+table
@@ -105,6 +111,8 @@ class DBWrapper(object):
             
             self.con.rollback()
             print('[error-line :{}], context : {}'.format(sys.exc_info()[-1].tb_lineno,e))
+            
+    #--------- INSERT PROCEDURE -------------------#
     def _insert_building(self):
         c1 = input("Building name: ")
         c2 = input("Building location: ")
@@ -123,7 +131,6 @@ class DBWrapper(object):
         c3 = int(input("Audience age: "))
         self._insert_common('Audience',c1,c2,c3)
 
-
     def _assign_performance(self):
         c1 = input("Building ID: ")
         c2 = input("Performance ID: ")
@@ -135,7 +142,11 @@ class DBWrapper(object):
         c3_str = input("Seat number: ")
         for i in c3_str.split(','):
             self._assign_common('Book',c1,c2,i.strip())
+    #--------- !INSERT PROCEDURE -------------------#
 
+
+
+    #--------- SELECT PROCEDURE --------------------#
     def _print_building(self):
         self._print_common('building')
 
@@ -154,6 +165,8 @@ class DBWrapper(object):
     def _print_ticket_pid(self):    
         c1 = input("Performance ID: ")
         self._print_common('Booking_with_pid',c1)
+    #--------- !SELECT PROCEDURE -------------------#
+
 
     def __init__(self,info):
         """
@@ -207,6 +220,13 @@ class DBWrapper(object):
         self.exit_flag = True
 
     def _reset(self):
+        """
+        - args = None
+        - return = None
+
+        - [role]
+        - read from script file and execute reset script(truncate sql function)
+        """
         with open('reset.sql','r') as r_data:
             reset_sql = r_data.read()
             try:
