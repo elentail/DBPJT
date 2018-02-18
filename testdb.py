@@ -173,7 +173,7 @@ class DBWrapper(object):
 
         cmd_sep = re.compile(r'(?P<cmd>\d+)\s+(?P<func>[_a-z]+)\s+(?P<desc>.*)')
         with open('command.txt','r') as r_data:
-            print('[command list]----------')
+            print('[  command list ]-------------')
             for row in r_data:
                 if(len(row)<5):
                     continue
@@ -184,6 +184,7 @@ class DBWrapper(object):
                 self.cmd_mapper[_td['cmd']]= getattr(self, _td['func'])
 
                 print(_td['cmd'],_td['desc'])
+            print('[ !command list ]-------------')
 
     def connect(self):
         """
@@ -206,28 +207,16 @@ class DBWrapper(object):
         self.exit_flag = True
 
     def _reset(self):
-        with open('DDL.sql','r') as r_data:
-            ddl = r_data.read()
+        with open('reset.sql','r') as r_data:
+            reset_sql = r_data.read()
             try:
                 with self.con.cursor() as cursor:
-                    for command in ddl.split(';'):
+                    for command in reset_sql.split(';'):
                         if command.strip() != '':
                             cursor.execute(command)
                 self.con.commit()
-                print('**DB SCHEMA RESET')
+                print('**DB TABLE RESET')
 
-            except Exception as e:
-                self.con.rollback()
-                print('[error-line :{}], context : {}'.format(sys.exc_info()[-1].tb_lineno,e))
-        with open('procedure.sql','r') as r_data:
-            proc = r_data.read()
-            try:
-                with self.con.cursor() as cursor:
-                    for command in proc.split(';'):
-                        if command.strip() != '':
-                            cursor.execute(command)
-                self.con.commit()
-                print('**CREATE PROCEDURE')
             except Exception as e:
                 self.con.rollback()
                 print('[error-line :{}], context : {}'.format(sys.exc_info()[-1].tb_lineno,e))
