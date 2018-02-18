@@ -38,11 +38,10 @@ class DBWrapper(object):
     cmd_desc = {}
     # command functor = { command idx:command functor}
     cmd_mapper = {}
-
-
+    exit_flag = False
 
     # ABSTRACT FUNCTION #
-    def _print_common(self,table):
+    def _print_common(self,table,*args):
         """
         - args : [table:str] = target table name
         - return = nothing
@@ -52,22 +51,26 @@ class DBWrapper(object):
         """
 
         try:
+            proc='PRINT_'+table
             with self.con.cursor() as cursor:
-                sql = "SELECT * FROM "+ table
-                cursor.execute(sql)
-                result = cursor.fetchall()
-                
+                #sql = "SELECT * FROM "+ table
+                #cursor.execute(sql)
+                #result = cursor.fetchall()
                 # precision exception about integer type
                 # row_format = '{:^20.10}'*len(result)
+                cursor.callproc(proc,args)
+                result = cursor.fetchall()
+
+
                 row_format = '{:^20}'*len(cursor.description)
-                print('='*80)
+                print('='*90)
                 print( row_format.format( *[i[0] for i in cursor.description] ))
-                print('='*80)
+                print('='*90)
                 for row in result:
                     print( row_format.format(*row.values()) )
 
         except Exception as e:
-            print(e)
+            print('[error-line :{}], context : {}'.format(sys.exc_info()[-1].tb_lineno,e))
 
     def _insert_common(self,table,*args):
         try:
@@ -86,6 +89,22 @@ class DBWrapper(object):
             self.con.rollback()
             print('[error-line :{}], context : {}'.format(sys.exc_info()[-1].tb_lineno,e))
 
+    def _assign_common(self,table,*args):
+        try:
+            proc='ASSIGN_'+table
+            with self.con.cursor() as cursor:
+                cursor.callproc(proc,args)
+                rst = cursor.fetchone()
+                #print(rst)
+                if rst['valid']<1:
+                    raise Exception('Insert valid error')
+            print('A {} is successfully assigned'.format(table))
+            self.con.commit()
+
+        except Exception as e:
+            
+            self.con.rollback()
+            print('[error-line :{}], context : {}'.format(sys.exc_info()[-1].tb_lineno,e))
     def _insert_building(self):
         c1 = input("Building name: ")
         c2 = input("Building location: ")
@@ -104,15 +123,37 @@ class DBWrapper(object):
         c3 = int(input("Audience age: "))
         self._insert_common('Audience',c1,c2,c3)
 
+
+    def _assign_performance(self):
+        c1 = input("Building ID: ")
+        c2 = input("Performance ID: ")
+        self._assign_common('Performance',c1,c2)
+
+    def _assign_book(self):
+        c1 = input("Performance ID: ")
+        c2 = input("Audience ID: ")
+        c3_str = input("Seat number: ")
+        for i in c3_str.split(','):
+            self._assign_common('Book',c1,c2,i.strip())
+
     def _print_building(self):
-        self._print_common('Building')
+        self._print_common('building')
 
     def _print_audience(self):
-        self._print_common('Audience')
+        self._print_common('audience')
 
     def _print_performance(self):
-        self._print_common('Performance')
+        self._print_common('performance')
 
+    def _print_assign_bid(self):
+        c1 = input("Building ID: ")
+        self._print_common('Performance_with_bid',c1)
+    def _print_assign_pid(self):    
+        c1 = input("Performance ID: ")
+        self._print_common('Audience_with_pid',c1)
+    def _print_ticket_pid(self):    
+        c1 = input("Performance ID: ")
+        self._print_common('Booking_with_pid',c1)
 
     def __init__(self,info):
         """
@@ -132,13 +173,17 @@ class DBWrapper(object):
 
         cmd_sep = re.compile(r'(?P<cmd>\d+)\s+(?P<func>[_a-z]+)\s+(?P<desc>.*)')
         with open('command.txt','r') as r_data:
+            print('[command list]----------')
             for row in r_data:
-                print(row.strip())
+                if(len(row)<5):
+                    continue
 
                 rst = re.match(cmd_sep,row)
                 _td = rst.groupdict()
                 self.cmd_desc[_td['cmd']]=_td['desc']
                 self.cmd_mapper[_td['cmd']]= getattr(self, _td['func'])
+
+                print(_td['cmd'],_td['desc'])
 
     def connect(self):
         """
@@ -157,6 +202,35 @@ class DBWrapper(object):
             return False
         return True
 
+    def _exit(self):
+        self.exit_flag = True
+
+    def _reset(self):
+        with open('DDL.sql','r') as r_data:
+            ddl = r_data.read()
+            try:
+                with self.con.cursor() as cursor:
+                    for command in ddl.split(';'):
+                        if command.strip() != '':
+                            cursor.execute(command)
+                self.con.commit()
+                print('**DB SCHEMA RESET')
+
+            except Exception as e:
+                self.con.rollback()
+                print('[error-line :{}], context : {}'.format(sys.exc_info()[-1].tb_lineno,e))
+        with open('procedure.sql','r') as r_data:
+            proc = r_data.read()
+            try:
+                with self.con.cursor() as cursor:
+                    for command in proc.split(';'):
+                        if command.strip() != '':
+                            cursor.execute(command)
+                self.con.commit()
+                print('**CREATE PROCEDURE')
+            except Exception as e:
+                self.con.rollback()
+                print('[error-line :{}], context : {}'.format(sys.exc_info()[-1].tb_lineno,e))
 
 
     ## MAIN FUNCTION ##
@@ -166,15 +240,18 @@ class DBWrapper(object):
         main function - event loop from user
         """
 
-        while True:
+        while not self.exit_flag:
             cmd = input("Select your action: ")
+            if(cmd not in self.cmd_mapper.keys()):
+                print('[error] *Unsupported Instruction*')
+                continue
             print(self.cmd_desc[cmd])
             self.cmd_mapper[cmd]()
             
 
     def __del__(self):
 
-        # Must close connection
+        # always close connection
         if (self.con and self.con.open):
             self.con.close()
             print('connection is closed')

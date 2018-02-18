@@ -4,3 +4,10 @@
 4 _insert_building insert buildings
 6 _insert_performance insert a new performance
 8 _insert_audience insert a new audience
+10 _assign_performance assign a performance to a building
+11 _assign_book book a performance
+12 _print_assign_bid print all performances wich assigned at a building
+13 _print_assign_pid audiences who booked for a performance
+14 _print_ticket_pid print ticket booking status of a performance
+15 _exit exit
+16 _reset reset database
