@@ -195,3 +195,30 @@ BEGIN
 END
 $$
 DELIMITER ;
+
+DROP PROCEDURE IF EXISTS BOOK_PERFORMANCE;
+DELIMITER $$
+CREATE PROCEDURE BOOK_PERFORMANCE(
+        IN  p_pid INT,
+        IN  p_aid INT,
+        IN p_sid INT
+        )
+BEGIN
+	DECLARE valid INT;
+    DECLARE check_exist INT;
+
+    SELECT count(id_audience) INTO check_exist from BookStatus  WHERE id_hall=p_pid and seat_id = p_sid;
+    
+	IF check_exist > 0 then
+		SET valid = 0;
+
+	ELSE
+		UPDATE BookStatus SET id_audience=p_aid
+        WHERE p_pid=id_hall and seat_id = p_sid ;
+		SET valid = 1;
+    END IF;
+   SELECT valid; 
+END
+$$
+DELIMITER ;
+

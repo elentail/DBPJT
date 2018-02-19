@@ -112,6 +112,29 @@ class DBWrapper(object):
             self.con.rollback()
             print('[error-line :{}], context : {}'.format(sys.exc_info()[-1].tb_lineno,e))
             
+    def _book_performance(self,pid,aid,*seats):
+        try:
+            proc='ASSIGN_'+table
+            total_price = 0
+            for sid in seats:
+                with self.con.cursor() as cursor:
+                    cursor.callproc(proc,sid)
+                    rst = cursor.fetchone()
+                    #print(rst)
+                    if rst['valid']<0:
+                        raise Exception('Insert valid error')
+                    elif rst['valid'] == 0:
+                        raise Exception('The seat is already taken')
+
+                    total_price += rst['valid']
+
+            print('Successfully book a performance')
+            print('Total ticket price is '+total_price)
+            self.con.commit()
+        except Exception as e:
+            self.con.rollback()
+            print('[error-line :{}], context : {}'.format(sys.exc_info()[-1].tb_lineno,e))
+            
     #--------- INSERT PROCEDURE -------------------#
     def _insert_building(self):
         c1 = input("Building name: ")
